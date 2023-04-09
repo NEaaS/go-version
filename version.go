@@ -8,6 +8,14 @@ import (
 	"golang.org/x/mod/semver"
 )
 
+const (
+	prefixPrerelease string = "-"
+	prefixBuild      string = "+"
+	prefixGoVersion  string = "go"
+
+	unversioned string = "unversioned"
+)
+
 var (
 	version   string = "v0.0.0+unversioned"
 	buildInfo *debug.BuildInfo
@@ -21,19 +29,19 @@ func Version() string {
 // Prerelease returns the prerelease value of the version if any. The '-' prefix
 // is stripped.
 func Prerelease() string {
-	return strings.TrimPrefix(semver.Prerelease(version), "-")
+	return strings.TrimPrefix(semver.Prerelease(version), prefixPrerelease)
 }
 
 // Build returns the build metadata value of the version if any. The '+' prefix
 // is stripped.
 func Build() string {
-	return strings.TrimPrefix(semver.Build(version), "+")
+	return strings.TrimPrefix(semver.Build(version), prefixBuild)
 }
 
 // GoVersion returns the golang version that was used to build the application.
 // This does not guarantee a semver compliant response.
 func GoVersion() string {
-	return strings.TrimPrefix(buildInfo.GoVersion, "go")
+	return strings.TrimPrefix(buildInfo.GoVersion, prefixGoVersion)
 }
 
 // DepVersion returns the version of a given dependency used. If the given
