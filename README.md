@@ -1,4 +1,6 @@
-# Version
+# GoVersion    ![GitHub release (latest SemVer)](https://img.shields.io/github/v/tag/neaas/go-version?display_name=tag&label=%20&sort=semver)  ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/neaas/go-version/checks.yml?label=%20&logo=github)
+[![Go Reference](https://pkg.go.dev/badge/github.com/neaas/go-version.svg)](https://pkg.go.dev/github.com/neaas/go-version)
+
 
 A (very) simple go package for handling semver compliant application versions.
 
