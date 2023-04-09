@@ -13,15 +13,28 @@ const (
 	prefixBuild      string = "+"
 	prefixGoVersion  string = "go"
 
-	unversioned string = "unversioned"
+	unversioned string = "v0.0.0+unversioned"
 )
 
 var (
-	version   string = "v0.0.0+unversioned"
+	version   string = unversioned
 	buildInfo *debug.BuildInfo
 )
 
-// Version returns the semver compliant version string (with the 'v' prefix).
+// IsValid returns true if the version is in a state that is compatible with
+// this package. This can be used to prevent invalid versions from being set.
+func IsValid() bool {
+	return semver.Canonical(version) != ""
+}
+
+// IsUnversioned returns true if the version is the default unversioned string.
+// This is likely to be true in development builds.
+func IsUnversioned() bool {
+	return version == unversioned
+}
+
+// Version returns the canonically formatted semver compliant version string
+// (with the 'v' prefix) or the default unversioned string.
 func Version() string {
 	return semver.Canonical(version)
 }
@@ -97,7 +110,7 @@ func Equal(v string) bool {
 // init ensures that only valid semver can be used as the application version
 // and parses the build info data from the binary.
 func init() {
-	if !semver.IsValid(version) {
+	if !IsValid() {
 		panic(fmt.Errorf("application version '%s' is not semver compliant", version))
 	}
 	if bi, ok := debug.ReadBuildInfo(); !ok {
