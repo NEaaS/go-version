@@ -8,7 +8,7 @@ A (very) simple go package for handling semver compliant application versions.
 
   - Immutable application version, set via linker flags.
   - Values from `runtime/debug` available.
-  - Check for updates using public GitHub release information.
+  - Check for updates using public GitHub release/tag information.
 
 ## Usage
 
@@ -20,8 +20,17 @@ import (
 )
 ```
 
-When building your application, set the version via linker flags... For example:
+## Configuration
+
+Set each configuration value using the linker flags as described below:
 
 ```bash
-go build -ldflags "-X github.com/neaas/go-version.version=v0.1.0" -o myapp .
+go build -ldflags "-X github.com/neaas/go-version.VARIABLE=VALUE" .
 ```
+
+|     Variable      |                                         Description                                         |    Default Value     |
+| :---------------: | :-----------------------------------------------------------------------------------------: | :------------------: |
+|     `version`     |                The semver compliant version of the application being built.                 | `v0.0.0+unversioned` |
+| `repositoryOwner` |                   The owner of the GitHub repository for the application.                   |       `neaas`        |
+| `repositoryName`  |                      The name of the application's GitHub repository.                       |     `go-version`     |
+|   `versionType`   | The method in which versions are defined for the repository <br> (`release`, `tag`, `none`) |        `tag`         |
