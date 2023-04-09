@@ -9,23 +9,89 @@ import (
 	"golang.org/x/mod/semver"
 )
 
-var (
-	ghClient        *github.Client = github.NewClient(nil)
-	repositoryOwner string
-	repositoryName  string
-
-	candidatelabel string = "-rc"
-	betaLabel      string = "-beta"
-	alphaLabel     string = "-alpha"
+const (
+	versionTypeRelease string = "release"
+	versionTypeTag     string = "tag"
+	versionTypeNone    string = "none"
 )
 
-// Versions fetches all of the releases from the applications associated GitHub
-// repository and reports back all the tag names coupled with them, provided the
-// tag name is valid semver. This only errors if the release list could not be
-// fetched.
+var (
+	ghClient *github.Client = github.NewClient(nil)
+
+	repositoryOwner string = "neaas"
+	repositoryName  string = "go-version"
+	versionType     string = versionTypeTag
+)
+
+// Versions fetches all of the releases/tags from the application's associated
+// GitHub repository and reports back all the semver compliant tag names coupled
+// with them. This only errors if the release or tag list could not be fetched.
 func Versions() ([]string, error) {
+	return RepoVersions(repositoryOwner, repositoryName, versionType)
+}
+
+// RepoVersions fetches all of the releases/tags from the GitHub repository with
+// the owner and name provided and reports back all the semver compliant tag
+// names coupled with them. This only errors if the release or tag list could
+// not be fetched.
+func RepoVersions(owner, name, versionType string) ([]string, error) {
+	versions := make([]string, 0)
+	switch versionType {
+	case versionTypeRelease:
+		if relV, err := releaseVersions(owner, name); err != nil {
+			return versions, err
+		} else {
+			versions = relV
+		}
+	case versionTypeTag:
+		if tagV, err := tagVersions(owner, name); err != nil {
+			return versions, err
+		} else {
+			versions = tagV
+		}
+	case versionTypeNone:
+		return versions, nil
+	default:
+		return versions, fmt.Errorf("version type '%s' is not supported", versionType)
+	}
+	semver.Sort(versions)
+	return versions, nil
+}
+
+// LatestVersion determines the latest version that is valid semver and not
+// prerelease from a given set of version strings. If no string provided fits
+// this criteria, an empty string is returned. There is no requirement for the
+// versions to be sorted prior to calling. Can be used in conjunction with
+// Versions and RepoVersions.
+func LatestVersion(versions []string) string {
+	semver.Sort(versions)
+	for i := len(versions) - 1; i >= 0; i-- {
+		if !semver.IsValid(versions[i]) {
+			continue // only consider valid semver versions
+		}
+		if strings.TrimPrefix(semver.Prerelease(versions[i]), prefixPrerelease) != "" {
+			continue // do not consider pre-release versions
+		}
+		return versions[i]
+	}
+	return ""
+}
+
+// Update checks if the current application's version is lower than that of the
+// version provided (only if the provided version is semver compliant). If the
+// application's version is lower, Update will return true. If the application's
+// version is equal to or greater than the given version, Update will return
+// false. If the given version is not semver compliant, Update will return false.
+func Update(latest string) bool {
+	if !semver.IsValid(latest) {
+		return false
+	}
+	return LessThan(latest)
+}
+
+func releaseVersions(owner, name string) ([]string, error) {
 	releaseTags := make([]string, 0)
-	releases, _, err := ghClient.Repositories.ListReleases(context.Background(), repositoryOwner, repositoryName, nil)
+	releases, _, err := ghClient.Repositories.ListReleases(context.Background(), owner, name, nil)
 	if err != nil {
 		return releaseTags, fmt.Errorf("failed to get release list from github: %w", err)
 	}
@@ -37,48 +103,16 @@ func Versions() ([]string, error) {
 	return releaseTags, nil
 }
 
-// LatestVersion gets the latest release for the application's repository from
-// GitHub and reports the tag associated with it as the version, provided the
-// tag is semver compliant. This errors if the latest release can not be found,
-// or the tag is not valid semver.
-func LatestVersion() (string, error) {
-	release, _, err := ghClient.Repositories.GetLatestRelease(context.Background(), repositoryOwner, repositoryName)
+func tagVersions(owner, name string) ([]string, error) {
+	tags := make([]string, 0)
+	ghTags, _, err := ghClient.Repositories.ListTags(context.Background(), owner, name, nil)
 	if err != nil {
-		return "", fmt.Errorf("failed to get latest release from github: %w", err)
+		return tags, fmt.Errorf("failed to get tag list from github: %w", err)
 	}
-	if semver.IsValid(*release.TagName) {
-		return *release.TagName, nil
-	}
-	return "", fmt.Errorf("release tag '%s' is not semver compliant", *release.TagName)
-}
-
-// UpdateCheck uses the GitHub release information to determine if the current
-// application version is not the latest suitable version. If candidate, beta or
-// alpha builds can be used as update versions, this can be specified by the
-// parameters of the same names. If an update is available, true is returned
-// along with the version string of the update. If the GitHub release versions
-// can not be obtained, an error is returned.
-func UpdateCheck(candidate, beta, alpha bool) (bool, string, error) {
-	versions, err := Versions()
-	if err != nil {
-		return false, "", err
-	}
-	if len(versions) == 0 {
-		return false, "", nil
-	}
-	for _, v := range versions {
-		if !candidate && strings.Contains(semver.Prerelease(v), candidatelabel) {
-			continue
-		}
-		if !beta && strings.Contains(semver.Prerelease(v), betaLabel) {
-			continue
-		}
-		if !alpha && strings.Contains(semver.Prerelease(v), alphaLabel) {
-			continue
-		}
-		if LessThan(v) {
-			return true, v, nil
+	for _, t := range ghTags {
+		if semver.IsValid(*t.Name) {
+			tags = append(tags, *t.Name)
 		}
 	}
-	return false, "", nil
+	return tags, nil
 }
