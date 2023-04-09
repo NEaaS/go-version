@@ -1,0 +1,13 @@
+{
+  "name": "go-version-dev",
+  "image": "ghcr.io/willfantom/devcontainer-go:latest",
+  "workspaceMount": "source=${localWorkspaceFolder}/,target=/go-version,type=bind,consistency=cached",
+  "workspaceFolder": "/go-version",
+  "extensions": [
+    "golang.go"
+  ],
+  "features": {
+    "ghcr.io/willfantom/features/dotfiles:1": {}
+  },
+  "settings": {}
+}
