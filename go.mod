@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/google/go-github/v45 v45.0.0
-	golang.org/x/mod v0.5.1
+	golang.org/x/mod v0.10.0
 )
 
 require (
